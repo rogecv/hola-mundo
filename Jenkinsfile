@@ -4,44 +4,77 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                slackNotif.initStageMessage()
                 git 'https://github.com/rogecv/hola-mundo.git'
-                slackNotif.updateStageMessage()
             }
         }
         
         stage('Build') {
             steps {
-                slackNotif.initStageMessage()
                 sh 'mvn clean install'
-                slackNotif.updateStageMessage()
+            }
+            post{
+                    Success{
+                        slackSend channel1: '#notificacionPipeline',
+                                    message: "Build OK"
+                    }
+                    Failed{
+                        slackSend channel1: '#notificacionPipeline',
+                                    message: "Build Fail"
+                    }
+                }
             }
         }
 
         stage('Scan Code'){
             steps{
-                slackNotif.initStageMessage()
                 script{
                     sh 'mvn sonar:sonar'
                 }
-                slackNotif.updateStageMessage()
+                post{
+                    Success{
+                        slackSend channel1: '#notificacionPipeline',
+                                    message: "Scan OK"
+                    }
+                    Failed{
+                        slackSend channel1: '#notificacionPipeline',
+                                    message: "Scan Fail"
+                    }
+                }
             }
         }
         
         stage('Test') {
             steps {
-                slackNotif.initStageMessage()
                 sh 'mvn test'
-                slackNotif.updateStageMessage()
             }
+            post{
+                    Success{
+                        slackSend channel1: '#notificacionPipeline',
+                                    message: "Build OK"
+                    }
+                    Failed{
+                        slackSend channel1: '#notificacionPipeline',
+                                    message: "Build Fail"
+                    }
+                }
         }
 
-        stage('Deploy'){
+        stage('Deploy to test'){
+             when {
+                expression { currentBuild.result == 'SUCCESS' } }
             steps{
-                slackNotif.initStageMessage()
-                sh ''
-                slackNotif.updateStageMessage()
+                sh 'ansible-playbook deploy_to_test.yml'
             }
+            post{
+                    Success{
+                        slackSend channel1: '#notificacionPipeline',
+                                    message: "Test OK"
+                    }
+                    Failed{
+                        slackSend channel1: '#notificacionPipeline',
+                                    message: "Test Fail"
+                    }
+                }
         }
     }
 }
